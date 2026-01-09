@@ -1,35 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class ItemsService {
   private items: any[] = [];
 
-  create(createItemDto: any) {
-    const newItem = { id: Date.now(), ...createItemDto };
-    this.items.push(newItem);
-    return newItem;
-  }
-
   findAll() {
     return this.items;
   }
 
-  findOne(id: number) {
-    return this.items.find(item => item.id === +id);
+  create(data: { name: string; description: string }) {
+    const newItem = {
+      id: Date.now(),
+      name: data.name,
+      description: data.description,
+      createdAt: new Date(),
+    };
+    this.items.push(newItem);
+    return newItem;
   }
 
-  // THIS IS THE MISSING METHOD THAT CAUSED YOUR ERROR:
-  update(id: number, updateItemDto: any) {
-    const index = this.items.findIndex(item => item.id === +id);
-    if (index !== -1) {
-      this.items[index] = { ...this.items[index], ...updateItemDto };
-      return this.items[index];
-    }
-    return null;
+  update(id: number, data: { name?: string; description?: string }) {
+    const index = this.items.findIndex((item) => item.id === +id);
+    if (index === -1) throw new NotFoundException();
+    this.items[index] = { ...this.items[index], ...data };
+    return this.items[index];
   }
 
   remove(id: number) {
-    this.items = this.items.filter(item => item.id !== +id);
-    return { deleted: true };
+    this.items = this.items.filter((item) => item.id !== +id);
+    return { success: true };
   }
 }
