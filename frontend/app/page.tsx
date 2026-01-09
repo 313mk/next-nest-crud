@@ -9,14 +9,20 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({ name: "", description: "", priority: "Medium" });
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
-  const [editingId, setEditingId] = useState<number | null>(null);
+  
+  // Changed from number to string | null because MongoDB _id is a string
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const API = "http://localhost:3001/items";
 
   const fetchItems = async () => {
-    const res = await fetch(API);
-    const data = await res.json();
-    setItems(data);
+    try {
+      const res = await fetch(API);
+      const data = await res.json();
+      setItems(data);
+    } catch (error) {
+      console.error("Failed to fetch items:", error);
+    }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -54,7 +60,8 @@ export default function Home() {
   };
 
   const toggleComplete = async (item: any) => {
-    await fetch(`${API}/${item.id}`, {
+    // Updated to use item._id
+    await fetch(`${API}/${item._id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed: !item.completed }),
@@ -62,13 +69,14 @@ export default function Home() {
     fetchItems();
   };
 
-  const deleteItem = async (id: number) => {
+  const deleteItem = async (id: string) => {
+    // Updated to handle string _id
     await fetch(`${API}/${id}`, { method: "DELETE" });
     fetchItems();
   };
 
   const filteredItems = items.filter((i: any) => 
-    i.name.toLowerCase().includes(searchTerm.toLowerCase())
+    i.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const completedCount = items.filter((i: any) => i.completed).length;
@@ -193,7 +201,8 @@ export default function Home() {
 
           <section className="lg:col-span-8 space-y-4">
             {filteredItems.map((item: any) => (
-              <div key={item.id} className={`group flex items-center justify-between rounded-3xl bg-white p-6 border border-slate-200 transition-all hover:border-indigo-200 ${item.completed ? 'opacity-60' : ''}`}>
+              // Use item._id for the key
+              <div key={item._id} className={`group flex items-center justify-between rounded-3xl bg-white p-6 border border-slate-200 transition-all hover:border-indigo-200 ${item.completed ? 'opacity-60' : ''}`}>
                 <div className="flex items-center gap-6">
                   <button 
                     onClick={() => toggleComplete(item)}
@@ -207,13 +216,14 @@ export default function Home() {
                       <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${item.priority === 'High' ? 'bg-red-100 text-red-600' : item.priority === 'Medium' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
                         {item.priority}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400">{item.createdAt}</span>
+                      <span className="text-[10px] font-bold text-slate-400">{new Date(item.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-4 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => { setEditingId(item.id); setForm(item); }} className="text-xs font-black text-indigo-600 hover:tracking-widest transition-all">EDIT</button>
-                  <button onClick={() => deleteItem(item.id)} className="text-xs font-black text-red-500 hover:tracking-widest transition-all">DELETE</button>
+                  {/* Updated to use item._id */}
+                  <button onClick={() => { setEditingId(item._id); setForm(item); }} className="text-xs font-black text-indigo-600 hover:tracking-widest transition-all">EDIT</button>
+                  <button onClick={() => deleteItem(item._id)} className="text-xs font-black text-red-500 hover:tracking-widest transition-all">DELETE</button>
                 </div>
               </div>
             ))}

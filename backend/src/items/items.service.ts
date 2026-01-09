@@ -1,10 +1,23 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Item } from './item.schema';
 
 @Injectable()
 export class ItemsService {
-  private items: any[] = [];
+  // still in-memory (same as earlier version)
   private users: any[] = [];
 
+  constructor(
+    @InjectModel(Item.name)
+    private readonly itemModel: Model<Item>,
+  ) {}
+
+  // ---------- AUTH ----------
   signup(userData: any) {
     const user = { id: Date.now(), ...userData };
     this.users.push(user);
@@ -12,35 +25,60 @@ export class ItemsService {
   }
 
   signin(credentials: any) {
-    const user = this.users.find(u => u.email === credentials.email && u.password === credentials.password);
-    if (!user) throw new UnauthorizedException();
-    return { user: { name: user.name, email: user.email } };
+    const user = this.users.find(
+      (u) =>
+        u.email === credentials.email &&
+        u.password === credentials.password,
+    );
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return {
+      user: {
+        name: user.name,
+        email: user.email,
+      },
+    };
   }
 
-  findAll() {
-    return this.items;
+  // ---------- ITEMS ----------
+  async findAll() {
+    return this.itemModel.find().exec();
   }
 
-  create(data: any) {
-    const newItem = {
-      id: Date.now(),
+  async create(data: any) {
+    const newItem = new this.itemModel({
       ...data,
       completed: false,
-      createdAt: new Date().toLocaleDateString(),
-    };
-    this.items.push(newItem);
-    return newItem;
+      createdAt: new Date(),
+    });
+
+    return newItem.save();
   }
 
-  update(id: number, data: any) {
-    const index = this.items.findIndex((item) => item.id === +id);
-    if (index === -1) throw new NotFoundException();
-    this.items[index] = { ...this.items[index], ...data };
-    return this.items[index];
+  async update(id: string, data: any) {
+    const updatedItem = await this.itemModel
+      .findByIdAndUpdate(id, data, { new: true })
+      .exec();
+
+    if (!updatedItem) {
+      throw new NotFoundException('Item not found');
+    }
+
+    return updatedItem;
   }
 
-  remove(id: number) {
-    this.items = this.items.filter((item) => item.id !== +id);
+  async remove(id: string) {
+    const deletedItem = await this.itemModel
+      .findByIdAndDelete(id)
+      .exec();
+
+    if (!deletedItem) {
+      throw new NotFoundException('Item not found');
+    }
+
     return { success: true };
   }
 }
