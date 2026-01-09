@@ -8,13 +8,13 @@ export class ItemsService {
   signup(userData: any) {
     const user = { id: Date.now(), ...userData };
     this.users.push(user);
-    return { message: 'Success' };
+    return { success: true };
   }
 
   signin(credentials: any) {
     const user = this.users.find(u => u.email === credentials.email && u.password === credentials.password);
     if (!user) throw new UnauthorizedException();
-    return { token: 'fake-jwt-token', user: { name: user.name, email: user.email } };
+    return { user: { name: user.name, email: user.email } };
   }
 
   findAll() {
@@ -25,9 +25,8 @@ export class ItemsService {
     const newItem = {
       id: Date.now(),
       ...data,
-      priority: data.priority || 'low',
-      status: 'pending',
-      createdAt: new Date(),
+      completed: false,
+      createdAt: new Date().toLocaleDateString(),
     };
     this.items.push(newItem);
     return newItem;
